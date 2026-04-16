@@ -8,39 +8,55 @@ export const useTaskStore = defineStore('tasks', {
         loading: false,
         submitting: false,
         errors: {},
+        filters: {
+            search: '',
+            completed: '',
+            per_page: 10,
+            page: 1,
+        },
+        meta: {
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+        },
+        links: {
+            first: null,
+            last: null,
+            prev: null,
+            next: null,
+        },
     }),
 
     getters: {
-        totalTasks: (state) => state.tasks.length,
-        completedTasks: (state) => state.tasks.filter(task => task.completed),
-        pendingTasks: (state) => state.tasks.filter(task => !task.completed),
+        totalTasks: (state) => state.meta.total,
+        completedTasksCount: (state) => state.tasks.filter(task => task.completed).length,
+        pendingTasksCount: (state) => state.tasks.filter(task => !task.completed).length,
     },
 
     actions: {
-        async fetchTasks() {
+        async fetchTasks(page = this.filters.page) {
             this.loading = true
 
             try {
-                const { data } = await api.get('/api/tasks')
-                this.tasks = data
+                this.filters.page = page
+
+                const params = {
+                    search: this.filters.search || undefined,
+                    completed: this.filters.completed !== '' ? this.filters.completed : undefined,
+                    per_page: this.filters.per_page,
+                    page: this.filters.page,
+                }
+
+                const { data } = await api.get('/api/tasks', { params })
+
+                this.tasks = data.data
+                this.meta = data.meta
+                this.links = data.links
+
                 return data
             } catch (error) {
                 console.error('Failed to fetch tasks:', error)
-                throw error
-            } finally {
-                this.loading = false
-            }
-        },
-
-        async fetchTask(id) {
-            this.loading = true
-
-            try {
-                const { data } = await api.get(`/api/tasks/${id}`)
-                this.currentTask = data
-                return data
-            } catch (error) {
-                console.error('Failed to fetch task:', error)
                 throw error
             } finally {
                 this.loading = false
@@ -52,14 +68,12 @@ export const useTaskStore = defineStore('tasks', {
             this.submitting = true
 
             try {
-                const { data } = await api.post('/api/tasks', payload)
-                this.tasks.unshift(data)
-                return data
+                await api.post('/api/tasks', payload)
+                await this.fetchTasks(1)
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
                 }
-
                 throw error
             } finally {
                 this.submitting = false
@@ -75,19 +89,18 @@ export const useTaskStore = defineStore('tasks', {
 
                 const index = this.tasks.findIndex(task => task.id === id)
                 if (index !== -1) {
-                    this.tasks[index] = data
+                    this.tasks[index] = data.data
                 }
 
                 if (this.currentTask?.id === id) {
-                    this.currentTask = data
+                    this.currentTask = data.data
                 }
 
-                return data
+                return data.data
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
                 }
-
                 throw error
             } finally {
                 this.submitting = false
@@ -96,12 +109,7 @@ export const useTaskStore = defineStore('tasks', {
 
         async deleteTask(id) {
             await api.delete(`/api/tasks/${id}`)
-
-            this.tasks = this.tasks.filter(task => task.id !== id)
-
-            if (this.currentTask?.id === id) {
-                this.currentTask = null
-            }
+            await this.fetchTasks(this.filters.page)
         },
 
         async toggleTask(task) {
@@ -110,6 +118,18 @@ export const useTaskStore = defineStore('tasks', {
                 description: task.description,
                 completed: !task.completed,
             })
+        },
+
+        setSearch(search) {
+            this.filters.search = search
+        },
+
+        setCompletedFilter(value) {
+            this.filters.completed = value
+        },
+
+        setPerPage(value) {
+            this.filters.per_page = value
         },
 
         clearErrors() {

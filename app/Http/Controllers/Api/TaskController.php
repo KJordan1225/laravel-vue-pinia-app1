@@ -3,84 +3,100 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
+use App\Http\Resources\TaskResource;
 use App\Models\Task;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class TaskController extends Controller
 {
+    use AuthorizesRequests;
     /**
-     * Display a listing of the authenticated user's tasks.
+     * Display a paginated listing of the authenticated user's tasks.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $tasks = $request->user()
-            ->tasks()
-            ->latest()
-            ->get();
+        $this->authorize('viewAny', Task::class);
 
-        return response()->json($tasks);
+        $query = $request->user()
+            ->tasks()
+            ->latest();
+
+        if ($search = trim((string) $request->string('search'))) {
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('completed')) {
+            $completed = filter_var($request->input('completed'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+            if ($completed !== null) {
+                $query->where('completed', $completed);
+            }
+        }
+
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = max(1, min($perPage, 50));
+
+        $tasks = $query->paginate($perPage)->withQueryString();
+
+        return TaskResource::collection($tasks);
     }
 
     /**
-     * Store a newly created task for the authenticated user.
+     * Store a newly created task.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTaskRequest $request): TaskResource
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'completed' => ['nullable', 'boolean'],
-        ]);
+        $this->authorize('create', Task::class);
 
         $task = $request->user()->tasks()->create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'completed' => $validated['completed'] ?? false,
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+            'completed' => $request->validated('completed', false),
         ]);
 
-        return response()->json($task, 201);
+        return new TaskResource($task);
     }
 
     /**
      * Display the specified task.
      */
-    public function show(Request $request, Task $task): JsonResponse
+    public function show(Task $task): TaskResource
     {
-        abort_unless($task->user_id === $request->user()->id, 403, 'Unauthorized.');
+        $this->authorize('view', $task);
 
-        return response()->json($task);
+        return new TaskResource($task);
     }
 
     /**
      * Update the specified task.
      */
-    public function update(Request $request, Task $task): JsonResponse
+    public function update(UpdateTaskRequest $request, Task $task): TaskResource
     {
-        abort_unless($task->user_id === $request->user()->id, 403, 'Unauthorized.');
+        $this->authorize('update', $task);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'completed' => ['required', 'boolean'],
-        ]);
+        $task->update($request->validated());
 
-        $task->update($validated);
-
-        return response()->json($task->fresh());
+        return new TaskResource($task->fresh());
     }
 
     /**
      * Remove the specified task.
      */
-    public function destroy(Request $request, Task $task): JsonResponse
+    public function destroy(Task $task): Response
     {
-        abort_unless($task->user_id === $request->user()->id, 403, 'Unauthorized.');
+        $this->authorize('delete', $task);
 
         $task->delete();
 
-        return response()->json([
-            'message' => 'Task deleted successfully.',
-        ]);
+        return response()->noContent();
     }
 }

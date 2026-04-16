@@ -3,29 +3,23 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
     /**
      * Register a new user.
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email:rfc,dns', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
-
-        $user = User::create($validated);
+        $user = User::create($request->validated());
 
         Auth::login($user);
-
         $request->session()->regenerate();
 
         return response()->json([
@@ -37,14 +31,10 @@ class AuthController extends Controller
     /**
      * Log in an existing user.
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $remember = $request->boolean('remember');
+        $credentials = $request->safe()->only(['email', 'password']);
+        $remember = (bool) $request->validated('remember', false);
 
         if (! Auth::attempt($credentials, $remember)) {
             return response()->json([
@@ -72,7 +62,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Log the current user out.
+     * Log out the current user.
      */
     public function logout(Request $request): JsonResponse
     {

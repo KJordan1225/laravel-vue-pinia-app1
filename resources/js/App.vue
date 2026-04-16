@@ -1,7 +1,7 @@
 <template>
-    <div class="app-shell">
+    <div class="bg-light min-vh-100">
         <Navbar />
-        <main class="page-container">
+        <main class="container py-4">
             <router-view />
         </main>
     </div>
@@ -10,16 +10,3 @@
 <script setup>
 import Navbar from '@/components/Navbar.vue'
 </script>
-
-<style scoped>
-.app-shell {
-    min-height: 100vh;
-    background: #f4f6f9;
-}
-
-.page-container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 1rem;
-}
-</style>
