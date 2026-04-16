@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import api from '@/axios'
+import { useUiStore } from '@/stores/ui'
 
 export const useTaskStore = defineStore('tasks', {
     state: () => ({
@@ -56,7 +57,7 @@ export const useTaskStore = defineStore('tasks', {
 
                 return data
             } catch (error) {
-                console.error('Failed to fetch tasks:', error)
+                useUiStore().error('Failed to load tasks.')
                 throw error
             } finally {
                 this.loading = false
@@ -64,16 +65,22 @@ export const useTaskStore = defineStore('tasks', {
         },
 
         async createTask(payload) {
+            const ui = useUiStore()
+
             this.errors = {}
             this.submitting = true
 
             try {
                 await api.post('/api/tasks', payload)
                 await this.fetchTasks(1)
+                ui.success('Task created.')
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
+                } else {
+                    ui.error('Task creation failed.')
                 }
+
                 throw error
             } finally {
                 this.submitting = false
@@ -81,6 +88,8 @@ export const useTaskStore = defineStore('tasks', {
         },
 
         async updateTask(id, payload) {
+            const ui = useUiStore()
+
             this.errors = {}
             this.submitting = true
 
@@ -96,11 +105,16 @@ export const useTaskStore = defineStore('tasks', {
                     this.currentTask = data.data
                 }
 
+                ui.success('Task updated.')
+
                 return data.data
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
+                } else {
+                    ui.error('Task update failed.')
                 }
+
                 throw error
             } finally {
                 this.submitting = false
@@ -108,8 +122,16 @@ export const useTaskStore = defineStore('tasks', {
         },
 
         async deleteTask(id) {
-            await api.delete(`/api/tasks/${id}`)
-            await this.fetchTasks(this.filters.page)
+            const ui = useUiStore()
+
+            try {
+                await api.delete(`/api/tasks/${id}`)
+                await this.fetchTasks(this.filters.page)
+                ui.info('Task deleted.')
+            } catch (error) {
+                ui.error('Task deletion failed.')
+                throw error
+            }
         },
 
         async toggleTask(task) {

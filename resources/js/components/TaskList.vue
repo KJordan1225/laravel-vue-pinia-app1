@@ -1,6 +1,16 @@
 <template>
     <div>
-        <div v-if="loading" class="empty-state">Loading tasks...</div>
+        <div v-if="loading" class="d-grid gap-3">
+            <div class="card border-0 shadow-sm" v-for="n in 3" :key="n">
+                <div class="card-body">
+                    <div class="placeholder-glow">
+                        <span class="placeholder col-6"></span>
+                        <span class="placeholder col-8 mt-2"></span>
+                        <span class="placeholder col-4 mt-3"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div v-else-if="!tasks.length" class="empty-state">
             You do not have any tasks yet.
@@ -56,6 +66,12 @@ async function handleToggle(task) {
 }
 
 async function handleDelete(id) {
+    const confirmed = window.confirm('Delete this task?')
+
+    if (!confirmed) {
+        return
+    }
+
     await taskStore.deleteTask(id)
 }
 </script>

@@ -34,7 +34,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->safe()->only(['email', 'password']);
-        $remember = (bool) $request->validated('remember', false);
+        $remember = $request->boolean('remember');
 
         if (! Auth::attempt($credentials, $remember)) {
             return response()->json([

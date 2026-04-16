@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import api, { ensureCsrfCookie } from '@/axios'
+import { useUiStore } from '@/stores/ui'
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -21,7 +22,7 @@ export const useAuthStore = defineStore('auth', {
             try {
                 const { data } = await api.get('/api/user')
                 this.user = data
-            } catch (error) {
+            } catch {
                 this.user = null
             } finally {
                 this.loading = false
@@ -30,20 +31,24 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async register(payload) {
+            const ui = useUiStore()
+
             this.errors = {}
             this.loading = true
 
             try {
                 await ensureCsrfCookie()
-
-                const { data } = await api.post('/api/register', payload)
+                const { data } = await api.post('/register', payload)
                 this.user = data.user
                 this.initialized = true
+                ui.success('Registration successful.')
 
                 return data
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
+                } else {
+                    ui.error('Registration failed.')
                 }
 
                 throw error
@@ -53,20 +58,24 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async login(payload) {
+            const ui = useUiStore()
+
             this.errors = {}
-            this.loading = true
+            this.loading = true            
 
             try {
                 await ensureCsrfCookie()
-
-                const { data } = await api.post('/api/login', payload)
+                const { data } = await api.post('/login', payload)
                 this.user = data.user
                 this.initialized = true
+                ui.success('Login successful.')
 
                 return data
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
+                } else {
+                    ui.error('Login failed.')
                 }
 
                 throw error
@@ -76,13 +85,16 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async logout() {
+            const ui = useUiStore()
+
             this.loading = true
 
             try {
-                await api.post('/api/logout')
+                await api.post('/logout')
                 this.user = null
                 this.errors = {}
                 this.initialized = true
+                ui.info('Logged out.')
             } finally {
                 this.loading = false
             }

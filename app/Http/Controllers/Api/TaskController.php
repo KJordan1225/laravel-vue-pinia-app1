@@ -7,21 +7,23 @@ use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class TaskController extends Controller
 {
     use AuthorizesRequests;
-    /**
-     * Display a paginated listing of the authenticated user's tasks.
-     */
+
+    public function __construct()
+    {
+        // $this->authorizeResource(Task::class, 'task');
+    }
+    
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        $this->authorize('viewAny', Task::class);
-
         $query = $request->user()
             ->tasks()
             ->latest();
@@ -50,51 +52,33 @@ class TaskController extends Controller
         return TaskResource::collection($tasks);
     }
 
-    /**
-     * Store a newly created task.
-     */
-    public function store(StoreTaskRequest $request): TaskResource
+    public function store(StoreTaskRequest $request)
     {
-        $this->authorize('create', Task::class);
-
         $task = $request->user()->tasks()->create([
             'title' => $request->validated('title'),
             'description' => $request->validated('description'),
             'completed' => $request->validated('completed', false),
         ]);
 
-        return new TaskResource($task);
+        return (new TaskResource($task))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    /**
-     * Display the specified task.
-     */
     public function show(Task $task): TaskResource
     {
-        $this->authorize('view', $task);
-
         return new TaskResource($task);
     }
 
-    /**
-     * Update the specified task.
-     */
     public function update(UpdateTaskRequest $request, Task $task): TaskResource
     {
-        $this->authorize('update', $task);
-
         $task->update($request->validated());
 
         return new TaskResource($task->fresh());
     }
 
-    /**
-     * Remove the specified task.
-     */
     public function destroy(Task $task): Response
     {
-        $this->authorize('delete', $task);
-
         $task->delete();
 
         return response()->noContent();

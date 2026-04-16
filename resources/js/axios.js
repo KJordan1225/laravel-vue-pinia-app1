@@ -1,13 +1,12 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL: '/',
+    baseURL: 'http://127.0.0.1:8000',
     withCredentials: true,
     withXSRFToken: true,
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
     },
 })
 
@@ -18,10 +17,6 @@ export async function ensureCsrfCookie() {
 api.interceptors.response.use(
     response => response,
     error => {
-        if (error.response?.status === 401) {
-            console.error('Unauthorized request.')
-        }
-
         return Promise.reject(error)
     }
 )
