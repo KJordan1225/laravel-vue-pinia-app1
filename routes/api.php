@@ -1,71 +1,17 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\TaskController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return response()->json([
-        'id' => 1,
-        'name' => 'Keith Jordan',
-        'email' => 'shadow902@gmail.com',
-    ]);
+Route::middleware('guest')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
 });
 
-Route::get('/tasks', function () {
-    return response()->json([
-        [
-            'id' => 1,
-            'title' => 'Build Laravel backend',
-            'completed' => false,
-        ],
-        [
-            'id' => 2,
-            'title' => 'Connect Vue frontend',
-            'completed' => true,
-        ],
-        [
-            'id' => 3,
-            'title' => 'Create Pinia stores',
-            'completed' => false,
-        ],
-        [
-            'id' => 4,
-            'title' => 'Test Tasks array',
-            'completed' => false,
-        ],
-    ]);
-});
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-Route::post('/login', function (Request $request) {
-    $validated = $request->validate([
-        'email' => ['required', 'email'],
-        'password' => ['required', 'string'],
-    ]);
-
-    return response()->json([
-        'message' => 'Login successful.',
-        'user' => [
-            'id' => 1,
-            'name' => 'Keith Jordan',
-            'email' => $validated['email'],
-        ],
-    ]);
-});
-
-Route::post('/logout', function () {
-    return response()->json([
-        'message' => 'Logged out successfully.',
-    ]);
-});
-
-Route::post('/tasks', function (Request $request) {
-    $validated = $request->validate([
-        'title' => ['required', 'string', 'max:255'],
-    ]);
-
-    return response()->json([
-        'id' => rand(100, 999),
-        'title' => $validated['title'],
-        'completed' => false,
-    ], 201);
+    Route::apiResource('tasks', TaskController::class);
 });

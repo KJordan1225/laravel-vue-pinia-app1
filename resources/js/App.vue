@@ -1,7 +1,9 @@
 <template>
-    <div class="container py-4">
+    <div class="app-shell">
         <Navbar />
-        <router-view />
+        <main class="page-container">
+            <router-view />
+        </main>
     </div>
 </template>
 
@@ -9,16 +11,15 @@
 import Navbar from '@/components/Navbar.vue'
 </script>
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f8f9fa;
-    margin: 0;
-    padding: 0;
+<style scoped>
+.app-shell {
+    min-height: 100vh;
+    background: #f4f6f9;
 }
 
-.container {
+.page-container {
     max-width: 960px;
     margin: 0 auto;
+    padding: 1rem;
 }
 </style>

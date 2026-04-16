@@ -1,11 +1,11 @@
 <template>
-    <div class="card">
-        <h1>Laravel 12 + Vue 3 + Pinia Starter</h1>
+    <section class="card">
+        <h1>Laravel Sanctum + Vue 3 + Pinia</h1>
         <p>
-            This is a starter application using Laravel as the backend and Vue 3
-            with Pinia on the frontend.
+            This starter uses real session-based authentication with Sanctum and
+            user-owned tasks stored in the database.
         </p>
-    </div>
+    </section>
 </template>
 
 <script setup>
@@ -13,9 +13,9 @@
 
 <style scoped>
 .card {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
+    background: #fff;
     border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
 }
 </style>

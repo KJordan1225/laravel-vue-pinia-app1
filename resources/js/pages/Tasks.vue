@@ -1,93 +1,90 @@
 <template>
-    <div class="card">
-        <h1>Tasks</h1>
-
-        <form @submit.prevent="submitTask" class="task-form">
-            <input
-                v-model="form.title"
-                type="text"
-                placeholder="Enter a task title"
+    <section class="page-grid">
+        <article class="card">
+            <h1>Create Task</h1>
+            <TaskForm
+                :is-edit="false"
+                button-text="Create Task"
+                @saved="handleCreated"
             />
-            <button type="submit">Add Task</button>
-        </form>
+        </article>
 
-        <small v-if="taskStore.errors.title" class="error">
-            {{ taskStore.errors.title[0] }}
-        </small>
+        <article v-if="editingTask" class="card">
+            <h2>Edit Task</h2>
+            <TaskForm
+                :model-value="editingTask"
+                :is-edit="true"
+                button-text="Update Task"
+                @saved="handleUpdated"
+                @cancel="cancelEdit"
+            />
+        </article>
 
-        <div class="stats">
-            <p>Total: {{ taskStore.totalTasks }}</p>
-            <p>Completed: {{ taskStore.completedTasks.length }}</p>
-            <p>Pending: {{ taskStore.pendingTasks.length }}</p>
-        </div>
+        <article class="card">
+            <div class="stats-row">
+                <span>Total: {{ totalTasks }}</span>
+                <span>Completed: {{ completedTasks.length }}</span>
+                <span>Pending: {{ pendingTasks.length }}</span>
+            </div>
 
-        <TaskList />
-    </div>
+            <TaskList @edit="startEdit" />
+        </article>
+    </section>
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useTaskStore } from '@/stores/tasks'
+import TaskForm from '@/components/TaskForm.vue'
 import TaskList from '@/components/TaskList.vue'
 
 const taskStore = useTaskStore()
+const { totalTasks, completedTasks, pendingTasks } = storeToRefs(taskStore)
 
-const form = reactive({
-    title: '',
+const editingTask = ref(null)
+
+onMounted(async () => {
+    await taskStore.fetchTasks()
 })
 
-onMounted(() => {
-    taskStore.fetchTasks()
-})
+function startEdit(task) {
+    editingTask.value = { ...task }
+}
 
-async function submitTask() {
-    try {
-        await taskStore.createTask({ title: form.title })
-        form.title = ''
-    } catch (error) {
-        console.error('Create task failed:', error)
-    }
+function cancelEdit() {
+    editingTask.value = null
+    taskStore.clearErrors()
+}
+
+function handleCreated() {
+    taskStore.clearErrors()
+}
+
+function handleUpdated() {
+    editingTask.value = null
+    taskStore.clearErrors()
 }
 </script>
 
 <style scoped>
+.page-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
 .card {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
+    background: #fff;
     border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1.5rem;
 }
 
-.task-form {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.task-form input {
-    flex: 1;
-    padding: 0.7rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.task-form button {
-    background: #198754;
-    color: white;
-    border: none;
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.stats {
+.stats-row {
     display: flex;
     gap: 1rem;
-    margin: 1rem 0;
     flex-wrap: wrap;
-}
-
-.error {
-    color: #dc3545;
+    margin-bottom: 1rem;
+    font-weight: 600;
 }
 </style>

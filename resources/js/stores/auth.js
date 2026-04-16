@@ -1,16 +1,17 @@
 import { defineStore } from 'pinia'
-import axios from '@/axios'
+import api, { ensureCsrfCookie } from '@/axios'
 
-export const useAuthStore = defineStore('authStore', {
+export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
         loading: false,
-        errors: {},
         initialized: false,
+        errors: {},
     }),
 
     getters: {
         isAuthenticated: (state) => !!state.user,
+        userName: (state) => state.user?.name ?? '',
     },
 
     actions: {
@@ -18,7 +19,7 @@ export const useAuthStore = defineStore('authStore', {
             this.loading = true
 
             try {
-                const { data } = await axios.get('/api/user')
+                const { data } = await api.get('/api/user')
                 this.user = data
             } catch (error) {
                 this.user = null
@@ -28,18 +29,46 @@ export const useAuthStore = defineStore('authStore', {
             }
         },
 
-        async login(payload) {
+        async register(payload) {
             this.errors = {}
             this.loading = true
 
             try {
-                const { data } = await axios.post('/api/login', payload)
+                await ensureCsrfCookie()
+
+                const { data } = await api.post('/api/register', payload)
                 this.user = data.user
+                this.initialized = true
+
                 return data
             } catch (error) {
                 if (error.response?.status === 422) {
                     this.errors = error.response.data.errors || {}
                 }
+
+                throw error
+            } finally {
+                this.loading = false
+            }
+        },
+
+        async login(payload) {
+            this.errors = {}
+            this.loading = true
+
+            try {
+                await ensureCsrfCookie()
+
+                const { data } = await api.post('/api/login', payload)
+                this.user = data.user
+                this.initialized = true
+
+                return data
+            } catch (error) {
+                if (error.response?.status === 422) {
+                    this.errors = error.response.data.errors || {}
+                }
+
                 throw error
             } finally {
                 this.loading = false
@@ -50,11 +79,17 @@ export const useAuthStore = defineStore('authStore', {
             this.loading = true
 
             try {
-                await axios.post('/api/logout')
+                await api.post('/api/logout')
                 this.user = null
+                this.errors = {}
+                this.initialized = true
             } finally {
                 this.loading = false
             }
+        },
+
+        clearErrors() {
+            this.errors = {}
         },
     },
 })

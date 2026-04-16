@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/pages/Home.vue'
 import Login from '@/pages/Login.vue'
+import Register from '@/pages/Register.vue'
 import Tasks from '@/pages/Tasks.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -14,7 +15,13 @@ const routes = [
         path: '/login',
         name: 'login',
         component: Login,
-        meta: { guest: true },
+        meta: { guestOnly: true },
+    },
+    {
+        path: '/register',
+        name: 'register',
+        component: Register,
+        meta: { guestOnly: true },
     },
     {
         path: '/tasks',
@@ -29,7 +36,7 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
     const authStore = useAuthStore()
 
     if (!authStore.initialized) {
@@ -37,14 +44,12 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-        return next({ name: 'login' })
+        return { name: 'login' }
     }
 
-    if (to.meta.guest && authStore.isAuthenticated) {
-        return next({ name: 'tasks' })
+    if (to.meta.guestOnly && authStore.isAuthenticated) {
+        return { name: 'tasks' }
     }
-
-    next()
 })
 
 export default router

@@ -1,11 +1,21 @@
 import axios from 'axios'
 
-axios.defaults.baseURL = 'http://127.0.0.1:8000'
-axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
-axios.defaults.withCredentials = true
-axios.defaults.withXSRFToken = true
+const api = axios.create({
+    baseURL: '/',
+    withCredentials: true,
+    withXSRFToken: true,
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+    },
+})
 
-axios.interceptors.response.use(
+export async function ensureCsrfCookie() {
+    await api.get('/sanctum/csrf-cookie')
+}
+
+api.interceptors.response.use(
     response => response,
     error => {
         if (error.response?.status === 401) {
@@ -16,4 +26,4 @@ axios.interceptors.response.use(
     }
 )
 
-export default axios
+export default api

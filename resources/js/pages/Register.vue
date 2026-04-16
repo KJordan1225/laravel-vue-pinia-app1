@@ -1,8 +1,16 @@
 <template>
     <section class="auth-card">
-        <h1>Login</h1>
+        <h1>Register</h1>
 
         <form class="auth-form" @submit.prevent="submit">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input id="name" v-model="form.name" type="text" autocomplete="name" />
+                <small v-if="errors.name" class="error-text">
+                    {{ errors.name[0] }}
+                </small>
+            </div>
+
             <div class="form-group">
                 <label for="email">Email</label>
                 <input id="email" v-model="form.email" type="email" autocomplete="email" />
@@ -17,26 +25,31 @@
                     id="password"
                     v-model="form.password"
                     type="password"
-                    autocomplete="current-password"
+                    autocomplete="new-password"
                 />
                 <small v-if="errors.password" class="error-text">
                     {{ errors.password[0] }}
                 </small>
             </div>
 
-            <label class="remember-row">
-                <input v-model="form.remember" type="checkbox" />
-                Remember me
-            </label>
+            <div class="form-group">
+                <label for="password_confirmation">Confirm Password</label>
+                <input
+                    id="password_confirmation"
+                    v-model="form.password_confirmation"
+                    type="password"
+                    autocomplete="new-password"
+                />
+            </div>
 
             <button class="primary-btn" type="submit" :disabled="loading">
-                {{ loading ? 'Logging in...' : 'Login' }}
+                {{ loading ? 'Registering...' : 'Register' }}
             </button>
         </form>
 
         <p class="auth-footer">
-            Need an account?
-            <router-link :to="{ name: 'register' }">Register</router-link>
+            Already have an account?
+            <router-link :to="{ name: 'login' }">Login</router-link>
         </p>
     </section>
 </template>
@@ -52,13 +65,14 @@ const authStore = useAuthStore()
 const { loading, errors } = storeToRefs(authStore)
 
 const form = reactive({
+    name: '',
     email: '',
     password: '',
-    remember: false,
+    password_confirmation: '',
 })
 
 async function submit() {
-    await authStore.login(form)
+    await authStore.register(form)
     router.push({ name: 'tasks' })
 }
 </script>
@@ -86,19 +100,13 @@ label {
     font-weight: 600;
 }
 
+input[type='text'],
 input[type='email'],
 input[type='password'] {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #ced4da;
     border-radius: 6px;
-}
-
-.remember-row {
-    display: inline-flex;
-    gap: 0.5rem;
-    align-items: center;
-    font-weight: 500;
 }
 
 .primary-btn {

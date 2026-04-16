@@ -11,12 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tasks', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->boolean('completed')->default(false);
-            $table->timestamps();
+        Schema::table('tasks', function (Blueprint $table) {
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
         });
     }
 
@@ -24,7 +22,10 @@ return new class extends Migration
      * Reverse the migrations.
      */
     public function down(): void
-    {
-        Schema::dropIfExists('tasks');
-    }
+	{
+		Schema::table('tasks', function (Blueprint $table) {
+			$table->dropForeign(['user_id']); // drop FK constraint
+			$table->dropColumn('user_id');    // drop column
+		});
+	}
 };
